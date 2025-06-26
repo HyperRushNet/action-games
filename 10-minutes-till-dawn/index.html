@@ -20,10 +20,13 @@
       top: 0; left: 0;
       width: 100%;
       height: 100%;
+      pointer-events: auto;
+      z-index: 1;
     }
     canvas {
       position: absolute;
       outline: none;
+      pointer-events: auto;
     }
     #virtualKeyboard {
       position: fixed;
@@ -36,8 +39,11 @@
       grid-template-rows: 70px 70px 70px;
       gap: 10px;
       user-select: none;
-      z-index: 9999;
       touch-action: none;
+      z-index: 10;
+      pointer-events: auto;
+      background: rgba(0,0,0,0.3);
+      border-radius: 10px;
     }
     #virtualKeyboard button {
       background: rgba(255,255,255,0.2);
@@ -49,8 +55,12 @@
       cursor: pointer;
       outline: none;
       -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      touch-action: none;
+      transition: background 0.15s;
     }
-    #virtualKeyboard button:active {
+    #virtualKeyboard button:active,
+    #virtualKeyboard button.active {
       background: rgba(255,255,255,0.5);
     }
     #virtualKeyboard button[data-key="KeyW"] { grid-column: 2; grid-row: 1; }
@@ -71,10 +81,10 @@
   </div>
 
   <script>
-    // Instantiate Unity
+    // Start Unity
     var gameInstance = UnityLoader.instantiate("gameContainer", "Build/10MinutesTillDawnWebGL.json");
 
-    // Resize canvas to fit window, keep ratio
+    // Resize canvas with aspect ratio
     function onResize() {
       if (!gameInstance || !gameInstance.Module || !gameInstance.Module.canvas) return;
 
@@ -100,7 +110,7 @@
     window.addEventListener("resize", onResize);
     window.addEventListener("load", onResize);
 
-    // Touch to mouse event conversion for clicks
+    // Touch to mouse event conversion
     function simulateMouseEvent(event, simulatedType) {
       if (event.touches.length > 0) {
         var touch = event.touches[0];
@@ -125,16 +135,17 @@
       }
     }
 
-    // Add touch listeners to canvas when ready
+    // Wait for canvas, add touch event listeners & focus
     var waitForCanvas = setInterval(() => {
       if (gameInstance && gameInstance.Module && gameInstance.Module.canvas) {
         var canvas = gameInstance.Module.canvas;
 
+        // Touch events => mouse events (click support)
         canvas.addEventListener("touchstart", e => { simulateMouseEvent(e, "mousedown"); e.preventDefault(); }, false);
         canvas.addEventListener("touchmove", e => { simulateMouseEvent(e, "mousemove"); e.preventDefault(); }, false);
         canvas.addEventListener("touchend", e => { simulateMouseEvent(e, "mouseup"); e.preventDefault(); }, false);
 
-        // Focus canvas to receive keyboard input
+        // Focus canvas for keyboard input
         canvas.setAttribute("tabindex", "0");
         canvas.focus();
 
@@ -142,7 +153,7 @@
       }
     }, 100);
 
-    // Virtual keyboard buttons trigger keyboard events on canvas
+    // Virtual keyboard buttons send key events to canvas
     const vk = document.getElementById("virtualKeyboard");
     vk.addEventListener("pointerdown", e => {
       if (e.target.tagName !== "BUTTON") return;
@@ -152,7 +163,7 @@
       var canvas = gameInstance.Module.canvas;
       if (!canvas) return;
 
-      // Create and dispatch keydown event
+      // keydown event
       var kd = new KeyboardEvent("keydown", { code: keyCode, key: keyCode.replace("Key", ""), bubbles: true });
       canvas.dispatchEvent(kd);
       e.target.classList.add("active");
@@ -166,13 +177,12 @@
       var canvas = gameInstance.Module.canvas;
       if (!canvas) return;
 
-      // Create and dispatch keyup event
+      // keyup event
       var ku = new KeyboardEvent("keyup", { code: keyCode, key: keyCode.replace("Key", ""), bubbles: true });
       canvas.dispatchEvent(ku);
       e.target.classList.remove("active");
     });
 
-    // Also handle pointercancel (finger leaving the button)
     vk.addEventListener("pointercancel", e => {
       if (e.target.tagName !== "BUTTON") return;
       e.target.classList.remove("active");
