@@ -1,192 +1,86 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>10 Minutes Till Dawn</title>
-
-  <script src="Build/UnityLoader.js"></script>
-
-  <style>
-    html, body {
-      margin: 0; padding: 0;
-      height: 100%;
-      background: #000;
-      overflow: hidden;
-      user-select: none;
-    }
-    #gameContainer {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: auto;
-      z-index: 1;
-    }
-    canvas {
-      position: absolute;
-      outline: none;
-      pointer-events: auto;
-    }
-    #virtualKeyboard {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      width: 230px;
-      height: 230px;
-      display: grid;
-      grid-template-columns: 70px 70px 70px;
-      grid-template-rows: 70px 70px 70px;
-      gap: 10px;
-      user-select: none;
-      touch-action: none;
-      z-index: 10;
-      pointer-events: auto;
-      background: rgba(0,0,0,0.3);
-      border-radius: 10px;
-    }
-    #virtualKeyboard button {
-      background: rgba(255,255,255,0.2);
-      border: 1px solid white;
-      border-radius: 5px;
-      font-size: 28px;
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-      outline: none;
-      -webkit-tap-highlight-color: transparent;
-      user-select: none;
-      touch-action: none;
-      transition: background 0.15s;
-    }
-    #virtualKeyboard button:active,
-    #virtualKeyboard button.active {
-      background: rgba(255,255,255,0.5);
-    }
-    #virtualKeyboard button[data-key="KeyW"] { grid-column: 2; grid-row: 1; }
-    #virtualKeyboard button[data-key="KeyA"] { grid-column: 1; grid-row: 2; }
-    #virtualKeyboard button[data-key="KeyS"] { grid-column: 2; grid-row: 2; }
-    #virtualKeyboard button[data-key="KeyD"] { grid-column: 3; grid-row: 2; }
-  </style>
-</head>
-
-<body>
-  <div id="gameContainer"></div>
-
-  <div id="virtualKeyboard">
-    <button data-key="KeyW">W</button>
-    <button data-key="KeyA">A</button>
-    <button data-key="KeyS">S</button>
-    <button data-key="KeyD">D</button>
-  </div>
-
-  <script>
-    // Start Unity
-    var gameInstance = UnityLoader.instantiate("gameContainer", "Build/10MinutesTillDawnWebGL.json");
-
-    // Resize canvas with aspect ratio
-    function onResize() {
-      if (!gameInstance || !gameInstance.Module || !gameInstance.Module.canvas) return;
-
-      var canvas = gameInstance.Module.canvas;
-      var container = gameInstance.container;
-
-      var w = window.innerWidth;
-      var h = window.innerHeight;
-
-      var ratio = 675 / 1200;
-
-      if (w * ratio > h) {
-        w = Math.floor(h / ratio);
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title class="cloak">10 Minutes Till Dawn | MacVG</title>
+    <link class="favicon" rel="shortcut icon" href="/logo.png" />
+    <span id="macvgmacvg" name="game4"></span>
+    <script src="/macvg/cloaker.js"></script>
+    <script src="Build/UnityLoader.js"></script>
+    <script src="/js/main.js"></script>
+    <script>
+      var gameInstance = UnityLoader.instantiate("gameContainer", "Build/10MinutesTillDawnWebGL.json");
+      var scaleToFit;
+      try {
+        scaleToFit = !!JSON.parse("");
+      } catch (e) {
+        scaleToFit = true;
       }
-      h = Math.floor(w * ratio);
 
-      container.style.width = canvas.style.width = w + "px";
-      container.style.height = canvas.style.height = h + "px";
-
-      container.style.top = Math.floor((window.innerHeight - h) / 2) + "px";
-      container.style.left = Math.floor((window.innerWidth - w) / 2) + "px";
-    }
-    window.addEventListener("resize", onResize);
-    window.addEventListener("load", onResize);
-
-    // Touch to mouse event conversion
-    function simulateMouseEvent(event, simulatedType) {
-      if (event.touches.length > 0) {
-        var touch = event.touches[0];
-        var simulatedEvent = new MouseEvent(simulatedType, {
-          bubbles: true,
-          cancelable: true,
-          view: window,
-          detail: 1,
-          screenX: touch.screenX,
-          screenY: touch.screenY,
-          clientX: touch.clientX,
-          clientY: touch.clientY,
-          ctrlKey: event.ctrlKey,
-          altKey: event.altKey,
-          shiftKey: event.shiftKey,
-          metaKey: event.metaKey,
-          button: 0,
-          buttons: 1,
-          relatedTarget: null
-        });
-        touch.target.dispatchEvent(simulatedEvent);
-      }
-    }
-
-    // Wait for canvas, add touch event listeners & focus
-    var waitForCanvas = setInterval(() => {
-      if (gameInstance && gameInstance.Module && gameInstance.Module.canvas) {
+      function onResize() {
         var canvas = gameInstance.Module.canvas;
+        var container = gameInstance.container;
+        var w;
+        var h;
 
-        // Touch events => mouse events (click support)
-        canvas.addEventListener("touchstart", e => { simulateMouseEvent(e, "mousedown"); e.preventDefault(); }, false);
-        canvas.addEventListener("touchmove", e => { simulateMouseEvent(e, "mousemove"); e.preventDefault(); }, false);
-        canvas.addEventListener("touchend", e => { simulateMouseEvent(e, "mouseup"); e.preventDefault(); }, false);
+        if (scaleToFit) {
+          w = window.innerWidth;
+          h = window.innerHeight;
 
-        // Focus canvas for keyboard input
-        canvas.setAttribute("tabindex", "0");
-        canvas.focus();
+          var r = 675 / 1200;
 
-        clearInterval(waitForCanvas);
+          if (w * r > window.innerHeight) {
+            w = Math.min(w, Math.ceil(h / r));
+          }
+          h = Math.floor(w * r);
+        } else {
+          w = 1200;
+          h = 675;
+        }
+
+        container.style.width = canvas.style.width = w + "px";
+        container.style.height = canvas.style.height = h + "px";
+        container.style.top = Math.floor((window.innerHeight - h) / 2) + "px";
+        container.style.left = Math.floor((window.innerWidth - w) / 2) + "px";
       }
-    }, 100);
+      window.addEventListener("resize", onResize);
+    </script>
+    <style>
+      html,
+      body {
+        background: #000;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+        padding: 0;
+        margin: 0;
+      }
 
-    // Virtual keyboard buttons send key events to canvas
-    const vk = document.getElementById("virtualKeyboard");
-    vk.addEventListener("pointerdown", e => {
-      if (e.target.tagName !== "BUTTON") return;
-      const keyCode = e.target.getAttribute("data-key");
-      if (!keyCode) return;
+      div#gameContainer {
+        background: transparent !important;
+        position: absolute;
+      }
 
-      var canvas = gameInstance.Module.canvas;
-      if (!canvas) return;
+      div#gameContainer canvas {
+        position: absolute;
+      }
 
-      // keydown event
-      var kd = new KeyboardEvent("keydown", { code: keyCode, key: keyCode.replace("Key", ""), bubbles: true });
-      canvas.dispatchEvent(kd);
-      e.target.classList.add("active");
-    });
+      div#gameContainer[data-pixelated="true"] canvas {
+        image-rendering: optimizeSpeed;
+        image-rendering: -webkit-crisp-edges;
+        image-rendering: -moz-crisp-edges;
+        image-rendering: -o-crisp-edges;
+        image-rendering: crisp-edges;
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: optimize-contrast;
+        image-rendering: pixelated;
+        -ms-interpolation-mode: nearest-neighbor;
+      }
+    </style>
+  </head>
 
-    vk.addEventListener("pointerup", e => {
-      if (e.target.tagName !== "BUTTON") return;
-      const keyCode = e.target.getAttribute("data-key");
-      if (!keyCode) return;
-
-      var canvas = gameInstance.Module.canvas;
-      if (!canvas) return;
-
-      // keyup event
-      var ku = new KeyboardEvent("keyup", { code: keyCode, key: keyCode.replace("Key", ""), bubbles: true });
-      canvas.dispatchEvent(ku);
-      e.target.classList.remove("active");
-    });
-
-    vk.addEventListener("pointercancel", e => {
-      if (e.target.tagName !== "BUTTON") return;
-      e.target.classList.remove("active");
-    });
-  </script>
-</body>
+  <body onload="onResize();">
+    <div id="gameContainer" data-pixelated="true"></div>
+  </body>
 </html>
