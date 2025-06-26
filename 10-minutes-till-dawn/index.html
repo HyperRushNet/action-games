@@ -45,6 +45,58 @@
         container.style.left = Math.floor((window.innerWidth - w) / 2) + "px";
       }
       window.addEventListener("resize", onResize);
+
+      // TOUCH -> MOUSE EVENT CONVERTER
+      function simulateMouseEvent(event, simulatedType) {
+        if (event.touches.length > 0) {
+          var touch = event.touches[0];
+          var simulatedEvent = new MouseEvent(simulatedType, {
+            bubbles: true,
+            cancelable: true,
+            view: window,
+            detail: 1,
+            screenX: touch.screenX,
+            screenY: touch.screenY,
+            clientX: touch.clientX,
+            clientY: touch.clientY,
+            ctrlKey: event.ctrlKey,
+            altKey: event.altKey,
+            shiftKey: event.shiftKey,
+            metaKey: event.metaKey,
+            button: 0,
+            buttons: 1,
+            relatedTarget: null
+          });
+
+          touch.target.dispatchEvent(simulatedEvent);
+        }
+      }
+
+      var canvas = null;
+
+      // Wacht tot canvas bestaat voordat eventlisteners worden toegevoegd
+      var waitForCanvas = setInterval(() => {
+        if (gameInstance && gameInstance.Module && gameInstance.Module.canvas) {
+          canvas = gameInstance.Module.canvas;
+
+          canvas.addEventListener("touchstart", function(e) {
+            simulateMouseEvent(e, "mousedown");
+            e.preventDefault();
+          }, false);
+
+          canvas.addEventListener("touchmove", function(e) {
+            simulateMouseEvent(e, "mousemove");
+            e.preventDefault();
+          }, false);
+
+          canvas.addEventListener("touchend", function(e) {
+            simulateMouseEvent(e, "mouseup");
+            e.preventDefault();
+          }, false);
+
+          clearInterval(waitForCanvas);
+        }
+      }, 100);
     </script>
     <style>
       html,
