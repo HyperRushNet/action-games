@@ -1,306 +1,180 @@
 <!DOCTYPE html>
 <html lang="en-us">
-  <head>
-    <meta charset="utf-8" />
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title class="cloak">10 Minutes Till Dawn | MacVG</title>
-    <link class="favicon" rel="shortcut icon" href="/logo.png" />
-    <span id="macvgmacvg" name="game4"></span>
-    <script src="/macvg/cloaker.js"></script>
-    <script src="Build/UnityLoader.js"></script>
-    <script src="/js/main.js"></script>
-    <script>
-      var gameInstance = UnityLoader.instantiate("gameContainer", "Build/10MinutesTillDawnWebGL.json");
-      var scaleToFit;
-      try {
-        scaleToFit = !!JSON.parse("");
-      } catch (e) {
-        scaleToFit = true;
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title class="cloak">10 Minutes Till Dawn | MacVG</title>
+  <link class="favicon" rel="shortcut icon" href="/logo.png" />
+  <span id="macvgmacvg" name="game4"></span>
+  <script src="/macvg/cloaker.js"></script>
+  <script src="Build/UnityLoader.js"></script>
+  <script src="/js/main.js"></script>
+
+  <style>
+    html, body {
+      background: #000;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      padding: 0;
+      margin: 0;
+    }
+
+    #gameContainer {
+      background: transparent !important;
+      position: absolute;
+    }
+
+    #gameContainer canvas {
+      position: absolute;
+      outline: none;
+    }
+
+    #gameContainer[data-pixelated="true"] canvas {
+      image-rendering: pixelated;
+    }
+
+    #virtualKeyboard {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 230px;
+      height: 230px;
+      user-select: none;
+      z-index: 1000;
+      display: grid;
+      grid-template-columns: 70px 70px 70px;
+      grid-template-rows: 70px 70px 70px;
+      gap: 10px;
+      touch-action: none;
+    }
+
+    #virtualKeyboard button {
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid #fff;
+      border-radius: 5px;
+      font-size: 28px;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      user-select: none;
+      outline: none;
+    }
+
+    #virtualKeyboard button:active {
+      background: rgba(255, 255, 255, 0.5);
+    }
+
+    #virtualKeyboard button[data-key="KeyW"] {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    #virtualKeyboard button[data-key="KeyA"] {
+      grid-column: 1;
+      grid-row: 2;
+    }
+
+    #virtualKeyboard button[data-key="KeyS"] {
+      grid-column: 2;
+      grid-row: 2;
+    }
+
+    #virtualKeyboard button[data-key="KeyD"] {
+      grid-column: 3;
+      grid-row: 2;
+    }
+  </style>
+</head>
+
+<body onload="onResize();">
+  <div id="gameContainer" data-pixelated="true"></div>
+
+  <!-- Virtueel WASD toetsenbord -->
+  <div id="virtualKeyboard">
+    <button data-key="KeyW">W</button>
+    <button data-key="KeyA">A</button>
+    <button data-key="KeyS">S</button>
+    <button data-key="KeyD">D</button>
+  </div>
+
+  <script>
+    var gameInstance = UnityLoader.instantiate("gameContainer", "Build/10MinutesTillDawnWebGL.json");
+    var scaleToFit = true;
+
+    function onResize() {
+      if (!gameInstance || !gameInstance.Module || !gameInstance.Module.canvas) return;
+
+      var canvas = gameInstance.Module.canvas;
+      var container = gameInstance.container;
+      var w, h;
+
+      if (scaleToFit) {
+        w = window.innerWidth;
+        h = window.innerHeight;
+        var r = 675 / 1200;
+
+        if (w * r > h) w = Math.min(w, Math.ceil(h / r));
+        h = Math.floor(w * r);
+      } else {
+        w = 1200;
+        h = 675;
       }
 
-      function onResize() {
-        var canvas = gameInstance.Module.canvas;
-        var container = gameInstance.container;
-        var w;
-        var h;
+      container.style.width = canvas.style.width = w + "px";
+      container.style.height = canvas.style.height = h + "px";
+      container.style.top = Math.floor((window.innerHeight - h) / 2) + "px";
+      container.style.left = Math.floor((window.innerWidth - w) / 2) + "px";
+    }
 
-        if (scaleToFit) {
-          w = window.innerWidth;
-          h = window.innerHeight;
+    window.addEventListener("resize", onResize);
 
-          var r = 675 / 1200;
-
-          if (w * r > window.innerHeight) {
-            w = Math.min(w, Math.ceil(h / r));
-          }
-          h = Math.floor(w * r);
-        } else {
-          w = 1200;
-          h = 675;
-        }
-
-        container.style.width = canvas.style.width = w + "px";
-        container.style.height = canvas.style.height = h + "px";
-        container.style.top = Math.floor((window.innerHeight - h) / 2) + "px";
-        container.style.left = Math.floor((window.innerWidth - w) / 2) + "px";
-      }
-      window.addEventListener("resize", onResize);
-
-      // TOUCH -> MOUSE EVENT CONVERTER
-      function simulateMouseEvent(event, simulatedType) {
-        if (event.touches.length > 0) {
-          var touch = event.touches[0];
-          var simulatedEvent = new MouseEvent(simulatedType, {
-            bubbles: true,
-            cancelable: true,
-            view: window,
-            detail: 1,
-            screenX: touch.screenX,
-            screenY: touch.screenY,
-            clientX: touch.clientX,
-            clientY: touch.clientY,
-            ctrlKey: event.ctrlKey,
-            altKey: event.altKey,
-            shiftKey: event.shiftKey,
-            metaKey: event.metaKey,
-            button: 0,
-            buttons: 1,
-            relatedTarget: null
-          });
-
-          touch.target.dispatchEvent(simulatedEvent);
-        }
-      }
-
-      var canvas = null;
-
-      // Wacht tot canvas bestaat voordat eventlisteners worden toegevoegd
-      var waitForCanvas = setInterval(() => {
-        if (gameInstance && gameInstance.Module && gameInstance.Module.canvas) {
-          canvas = gameInstance.Module.canvas;
-
-          canvas.addEventListener("touchstart", function(e) {
-            simulateMouseEvent(e, "mousedown");
-            e.preventDefault();
-          }, false);
-
-          canvas.addEventListener("touchmove", function(e) {
-            simulateMouseEvent(e, "mousemove");
-            e.preventDefault();
-          }, false);
-
-          canvas.addEventListener("touchend", function(e) {
-            simulateMouseEvent(e, "mouseup");
-            e.preventDefault();
-          }, false);
-
-          // WASD keys forwarding
-          window.addEventListener("keydown", function(e) {
-            if (canvas) {
-              var keyboardEvent = new KeyboardEvent("keydown", {
-                key: e.key,
-                code: e.code,
-                keyCode: e.keyCode,
-                which: e.which,
-                bubbles: true,
-                cancelable: true,
-                shiftKey: e.shiftKey,
-                ctrlKey: e.ctrlKey,
-                metaKey: e.metaKey,
-                altKey: e.altKey
-              });
-              canvas.dispatchEvent(keyboardEvent);
-              e.preventDefault();
-            }
-          });
-
-          window.addEventListener("keyup", function(e) {
-            if (canvas) {
-              var keyboardEvent = new KeyboardEvent("keyup", {
-                key: e.key,
-                code: e.code,
-                keyCode: e.keyCode,
-                which: e.which,
-                bubbles: true,
-                cancelable: true,
-                shiftKey: e.shiftKey,
-                ctrlKey: e.ctrlKey,
-                metaKey: e.metaKey,
-                altKey: e.altKey
-              });
-              canvas.dispatchEvent(keyboardEvent);
-              e.preventDefault();
-            }
-          });
-
-          clearInterval(waitForCanvas);
-        }
-      }, 100);
-
-      // Virtueel WASD toetsenbord functionaliteit
-      (function() {
-        const vk = document.getElementById("virtualKeyboard");
-        if (!vk) return;
-
-        function sendKeyEvent(type, code) {
-          if (!canvas) return;
-          const keyboardEvent = new KeyboardEvent(type, {
-            key: codeToKey(code),
-            code: code,
-            keyCode: codeToKeyCode(code),
-            which: codeToKeyCode(code),
-            bubbles: true,
-            cancelable: true,
-            composed: true,
-          });
-          canvas.dispatchEvent(keyboardEvent);
-        }
-
-        function codeToKey(code) {
-          switch (code) {
-            case "KeyW": return "w";
-            case "KeyA": return "a";
-            case "KeyS": return "s";
-            case "KeyD": return "d";
-            default: return "";
-          }
-        }
-
-        function codeToKeyCode(code) {
-          switch (code) {
-            case "KeyW": return 87;
-            case "KeyA": return 65;
-            case "KeyS": return 83;
-            case "KeyD": return 68;
-            default: return 0;
-          }
-        }
-
-        vk.querySelectorAll("button").forEach(button => {
-          button.addEventListener("touchstart", e => {
-            e.preventDefault();
-            const code = button.getAttribute("data-key");
-            sendKeyEvent("keydown", code);
-          });
-          button.addEventListener("mousedown", e => {
-            e.preventDefault();
-            const code = button.getAttribute("data-key");
-            sendKeyEvent("keydown", code);
-          });
-
-          button.addEventListener("touchend", e => {
-            e.preventDefault();
-            const code = button.getAttribute("data-key");
-            sendKeyEvent("keyup", code);
-          });
-          button.addEventListener("mouseup", e => {
-            e.preventDefault();
-            const code = button.getAttribute("data-key");
-            sendKeyEvent("keyup", code);
-          });
-
-          button.addEventListener("mouseleave", e => {
-            const code = button.getAttribute("data-key");
-            sendKeyEvent("keyup", code);
-          });
+    // Simuleer muisklik via touch
+    function simulateMouseEvent(event, simulatedType) {
+      if (event.touches.length > 0) {
+        var touch = event.touches[0];
+        var simulatedEvent = new MouseEvent(simulatedType, {
+          bubbles: true,
+          cancelable: true,
+          view: window,
+          detail: 1,
+          screenX: touch.screenX,
+          screenY: touch.screenY,
+          clientX: touch.clientX,
+          clientY: touch.clientY,
+          button: 0,
+          buttons: 1
         });
-      })();
-    </script>
-    <style>
-      html,
-      body {
-        background: #000;
-        width: 100%;
-        height: 100%;
-        overflow: visible;
-        padding: 0;
-        margin: 0;
+
+        window.dispatchEvent(simulatedEvent);
       }
+    }
 
-      div#gameContainer {
-        background: transparent !important;
-        position: absolute;
-      }
+    var canvas = null;
 
-      div#gameContainer canvas {
-        position: absolute;
-      }
+    var waitForCanvas = setInterval(() => {
+      if (gameInstance && gameInstance.Module && gameInstance.Module.canvas) {
+        canvas = gameInstance.Module.canvas;
 
-      div#gameContainer[data-pixelated="true"] canvas {
-        image-rendering: optimizeSpeed;
-        image-rendering: -webkit-crisp-edges;
-        image-rendering: -moz-crisp-edges;
-        image-rendering: -o-crisp-edges;
-        image-rendering: crisp-edges;
-        image-rendering: -webkit-optimize-contrast;
-        image-rendering: optimize-contrast;
-        image-rendering: pixelated;
-        -ms-interpolation-mode: nearest-neighbor;
-      }
+        // Geef canvas focus voor toetsenbordinput
+        canvas.tabIndex = 1;
+        canvas.focus();
 
-      /* Virtueel toetsenbord styling */
-      #virtualKeyboard {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        width: 230px;
-        height: 230px;
-        user-select: none;
-        z-index: 1000;
-        display: grid;
-        grid-template-columns: 70px 70px 70px;
-        grid-template-rows: 70px 70px 70px;
-        gap: 10px;
-        touch-action: none;
-      }
+        // Touch events → muis
+        canvas.addEventListener("touchstart", function(e) {
+          simulateMouseEvent(e, "mousedown");
+          e.preventDefault();
+        }, false);
 
-      #virtualKeyboard button {
-        background: rgba(255, 255, 255, 0.2);
-        border: 1px solid #fff;
-        border-radius: 5px;
-        font-size: 28px;
-        color: white;
-        font-weight: bold;
-        cursor: pointer;
-        user-select: none;
-        outline: none;
-      }
+        canvas.addEventListener("touchmove", function(e) {
+          simulateMouseEvent(e, "mousemove");
+          e.preventDefault();
+        }, false);
 
-      #virtualKeyboard button:active {
-        background: rgba(255, 255, 255, 0.5);
-      }
+        canvas.addEventListener("touchend", function(e) {
+          simulateMouseEvent(e, "mouseup");
+          e.preventDefault();
+        }, false);
 
-      #virtualKeyboard button[data-key="KeyW"] {
-        grid-column: 2;
-        grid-row: 1;
-      }
-
-      #virtualKeyboard button[data-key="KeyA"] {
-        grid-column: 1;
-        grid-row: 2;
-      }
-
-      #virtualKeyboard button[data-key="KeyS"] {
-        grid-column: 2;
-        grid-row: 2;
-      }
-
-      #virtualKeyboard button[data-key="KeyD"] {
-        grid-column: 3;
-        grid-row: 2;
-      }
-    </style>
-  </head>
-
-  <body onload="onResize();">
-    <div id="gameContainer" data-pixelated="true"></div>
-
-    <!-- Virtueel WASD toetsenbord -->
-    <div id="virtualKeyboard">
-      <button data-key="KeyW">W</button>
-      <button data-key="KeyA">A</button>
-      <button data-key="KeyS">S</button>
-      <button data-key="KeyD">D</button>
-    </div>
-  </body>
-</html>
+        // WASD toetsen
+        window.addEventListener("
