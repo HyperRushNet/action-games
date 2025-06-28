@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>1v1.LOL | HyperRush</title>
+
+  <!-- =======================
+       Stylesheet
+       ======================= -->
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      background-color: #000;
+      font-family: sans-serif;
+    }
+
+    #loader {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 9999;
+      color: white;
+    }
+
+    .spinner {
+      width: 60px;
+      height: 60px;
+      border: 8px solid #f3f3f3;
+      border-top: 8px solid #3498db;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-top: 20px;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    #loader-logo {
+      width: 200px;
+      height: auto;
+    }
+
+    #gameContainer {
+      width: 100%;
+      height: 100%;
+      background: black;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- =======================
+       Loader with logo and spinner
+       ======================= -->
+  <div id="loader">
+    <img id="loader-logo"
+      src="https://pbs.twimg.com/profile_images/1219353297129295874/HDIEpfJr_400x400.jpg"
+      alt="1v1.LOL Logo" />
+    <p style="margin-top: -40px;">--=- Starting Game... -=--</p>
+  </div>
+
+  <!-- =======================
+       Unity Game Container
+       ======================= -->
+  <div id="gameContainer"></div>
+
+  <!-- =======================
+       Unity & Firebase Scripts
+       ======================= -->
+  <script src="https://cdn.jsdelivr.net/gh/n-101-1/1@main/UnityProgress.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/n-101-1/1@main/2.7.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/n-101-1/1@main/1firebase-app.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/n-101-1/1@main/1firebase-auth.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/n-101-1/1@main/1firebase-firestore.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/n-101-1/1@main/1firebase.js"></script>
+
+  <!-- =======================
+       Firebase Authentication & Login Functions
+       ======================= -->
+  <script>
+    var tempErrorCreds;
+    var tempProviderName;
+
+    function retrieveIdToken(successCallback, errorCallback) {
+      if (firebase.auth().currentUser === null) {
+        if (errorCallback !== null)
+          errorCallback("User is null");
+        return;
+      }
+
+      firebase.auth().currentUser.getIdToken().then(function (idToken) {
+        console.log(idToken);
+
+        var resultObj = {
+          token: idToken,
+          displayName: firebase.auth().currentUser.displayName
+        };
+        console.log("Sending result to unity:");
+        console.log(resultObj);
+
+        if (successCallback !== undefined) {
+          successCallback(resultObj);
+        }
+      })
+        .catch(function (error) {
+          console.log(error);
+          if (errorCallback !== undefined)
+            errorCallback(error.message);
+        });
+    }
+
+    function anonymousLogin(successCallback, errorCallback) {
+      var resultObj = {
+        token: "",
+        displayName: "guest"
+      };
+      console.log("Sending result to unity:");
+      console.log(resultObj);
+
+      if (successCallback !== undefined) {
+        successCallback(resultObj);
+      }
+    }
+
+    function firebaseLogin(providerName, successCallback, errorCallback) {
+      if (providerName === "anonymous") {
+        anonymousLogin(successCallback, errorCallback);
+        return;
+      }
+
+      // Block Google login
+      if (providerName === "google") {
+        if (errorCallback) errorCallback("Google login is disabled.");
+        console.log("Google login attempt blocked.");
+        return;
+      }
+
+      var user = firebase.auth().currentUser;
+
+      if (user != null && !user.isAnonymous) {
+        retrieveIdToken(successCallback, errorCallback);
+        return;
+      }
+
+      var provider = getProvider(providerName);
+      if (!provider) {
+        if (errorCallback) errorCallback("Provider not found or disabled.");
+        return;
+      }
+
+      firebase.auth().useDeviceLanguage();
+
+      firebase.auth().signInWithPopup(provider).then(function (result) {
+        console.log("Successful sign in");
+        retrieveIdToken(successCallback, errorCallback);
+      })
+        .catch(function (error) {
+          var errorCode = error.code;
+          var errorMessage = error.message;
+          var email = error.email;
+          tempErrorCreds = error.credential;
+          console.log(error);
+
+          if (errorCallback !== undefined)
+            errorCallback(error.message);
+
+          if (errorCode === 'auth/account-exists-with-different-credential') {
+            firebase.auth().fetchSignInMethodsForEmail(email).then(function (methods) {
+              if (methods.length == 0)
+                return;
+              tempProviderName = methods[0].trim();
+              setModalContent("generalModalContent",
+                "<div id =\"continueWindow\"><span class=\"close\" id=\"closeButton\" onclick=\"hideModal('generalModal')\">&times;</span><p>Please press the button to login: </p><button onclick=\"continueLogin()\">Continue Login</button></div>");
+              showModal("generalModal");
+            });
+          }
+        });
+    }
+
+    function firebaseLogout() {
+      firebase.auth().signOut().catch(function (error) {
+        console.log(error);
+      });
+    }
+
+    function getCurrentUserDisplayName() {
+      var user = firebase.auth().currentUser;
+      var displayName = "";
+      if (user) {
+        displayName = user.displayName;
+      }
+      return displayName;
+    }
+
+    function getProvider(providerName) {
+      if (providerName && providerName.indexOf("facebook") != -1)
+        return new firebase.auth.FacebookAuthProvider();
+
+      // Google disabled, return null
+      console.log("getProvider: Google login is disabled");
+      return null;
+    }
+
+    function setModalContent(modalContentId, contentString) {
+      content = document.getElementById(modalContentId);
+      if (content) {
+        content.innerHTML = contentString;
+      }
+    }
+
+    function continueLogin() {
+      hideModal("generalModal");
+      var provider = getProvider(tempProviderName);
+      firebase.auth().signInWithPopup(provider).then(
+        function (result) {
+          if (!tempErrorCreds) {
+            return;
+          }
+          result.user.linkAndRetrieveDataWithCredential(tempErrorCreds).then(function (usercred) {
+            //goToApp();
+          });
+        });
+    }
+
+    function showModal(modalId) {
+      modal = document.getElementById(modalId);
+      if (modal)
+        modal.style.display = "block";
+    }
+
+    function hideModal(modalId) {
+      modal = document.getElementById(modalId);
+      if (modal)
+        modal.style.display = "none";
+    }
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/gh/n-101-1/1@main/1firestore.js"></script>
+
+  <!-- =======================
+       Unity Loader & Game Initialization
+       ======================= -->
+  <script>
+    function UnityProgress(gameInstance, progress) {
+      if (progress === 1) {
+        const loader = document.getElementById("loader");
+        if (loader) loader.style.display = "none";
+      }
+    }
+
+    let gameInstance;
+    window.onload = () => {
+      gameInstance = UnityLoader.instantiate(
+        "gameContainer",
+        "https://cdn.jsdelivr.net/gh/n-101-1/1@main/2.7.json",
+        {
+          onProgress: UnityProgress,
+          Module: {
+            onRuntimeInitialized: () => {
+              UnityProgress(gameInstance, 1);
+            },
+          },
+        }
+      );
+    };
+
+    function showAds() {
+      console.log("Show ad");
+    }
+
+    function requestNewAd() {
+      unityAdFinishedCallback();
+    }
+
+    function unityAdFinishedCallback() {
+      try {
+        if (gameInstance)
+          gameInstance.SendMessage("AdsManager", "OnWebCallback");
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    function initializeFireBase() {
+      // Firebase initialization
+    }
+  </script>
+
+</body>
+
+</html>
