@@ -1,1 +1,1 @@
-The new and improved games list
+HyperRush Games 
